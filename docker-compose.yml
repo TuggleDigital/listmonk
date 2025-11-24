@@ -2,9 +2,9 @@
 # eg: LISTMONK_ADMIN_USER -> LISTMONK_ADMIN_USER_FILE=/path/to/file_with_value
 
 x-db-credentials: &db-credentials                             # Use the default POSTGRES_ credentials if they're available or simply default to "listmonk"
-  POSTGRES_USER: &db-user AndrewT39                            # for database user, password, and database name
-  POSTGRES_PASSWORD: &db-password DofM2025!!!
-  POSTGRES_DB: &db-name allied_commercial
+  POSTGRES_USER: &db-user postgres                            # for database user, password, and database name
+  POSTGRES_PASSWORD: &db-password ETrrjnVVzLTlNjuHPDjUxzywHrroPlVf
+  POSTGRES_DB: &db-name railway
 
 services:
   # listmonk app
@@ -54,7 +54,7 @@ services:
     environment:
       <<: *db-credentials
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U allied_commercial"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 6
