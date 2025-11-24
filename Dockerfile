@@ -1,5 +1,5 @@
 # Stage 1: Build email-builder
-FROM node:16 AS email-builder
+FROM node:18 AS email-builder
 WORKDIR /app/email-builder
 COPY frontend/email-builder/package.json frontend/email-builder/yarn.lock ./
 RUN yarn install
@@ -7,7 +7,7 @@ COPY frontend/email-builder/ ./
 RUN yarn build
 
 # Stage 2: Build frontend
-FROM node:16 AS frontend-builder
+FROM node:18 AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json frontend/yarn.lock ./
 RUN yarn install
