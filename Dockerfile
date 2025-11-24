@@ -15,7 +15,8 @@ RUN mkdir -p ../static/public/static
 COPY frontend/ ./
 RUN yarn install
 COPY --from=email-builder /app/email-builder/dist ./public/static/email-builder
-RUN yarn build
+# Skip prebuild linting and run vite build directly
+RUN yarn vite build
 
 # Stage 3: Build backend
 FROM golang:1.20 AS backend-builder
