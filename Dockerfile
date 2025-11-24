@@ -1,19 +1,60 @@
-FROM alpine:latest
+# Stage 1: Build email-builder
+FROM node:16 AS email-builder
+WORKDIR /app
+COPY frontend/email-builder/package.json frontend/email-builder/yarn.lock ./email-builder/
+RUN cd email-builder && yarn install
+COPY frontend/email-builder ./email-builder/
+RUN cd email-builder && yarn build
 
-# Install dependencies
+# Stage 2: Build frontend
+FROM node:16 AS frontend-builder
+WORKDIR /app
+COPY frontend/package.json frontend/yarn.lock ./
+RUN yarn install
+COPY frontend ./
+COPY --from=email-builder /app/email-builder/dist ./public/static/email-builder
+RUN yarn build
+
+# Stage 3: Build backend
+FROM golang:1.20 AS backend-builder
+WORKDIR /app
+
+# Install stuffbin for embedding assets
+RUN go install github.com/knadh/stuffbin/...@latest
+
+# Copy Go module files and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code and static files
+COPY . .
+COPY --from=frontend-builder /app/dist ./frontend/dist
+
+# Build the binary
+ARG VERSION=v4.0.0
+ARG LAST_COMMIT=unknown
+RUN CGO_ENABLED=0 go build -o listmonk \
+    -ldflags="-s -w -X 'main.buildString=${VERSION} (#${LAST_COMMIT})' -X 'main.versionString=${VERSION}'" \
+    cmd/*.go
+
+# Pack static assets into the binary
+RUN /go/bin/stuffbin -a stuff -in listmonk -out listmonk \
+    config.toml.sample \
+    schema.sql queries:/queries permissions.json \
+    static/public:/public \
+    static/email-templates \
+    frontend/dist:/admin \
+    i18n:/i18n
+
+# Stage 4: Runtime
+FROM alpine:latest
 RUN apk --no-cache add ca-certificates tzdata shadow su-exec
 
-# Set the working directory
 WORKDIR /listmonk
 
-# Copy only the necessary files
-COPY listmonk .
-COPY config.toml.sample config.toml
-
-# Copy the entrypoint script
+# Copy the packed binary and entrypoint
+COPY --from=backend-builder /app/listmonk .
 COPY docker-entrypoint.sh /usr/local/bin/
-
-# Make the entrypoint script executable
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose the application port
