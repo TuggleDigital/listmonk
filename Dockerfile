@@ -10,8 +10,10 @@ RUN yarn build
 FROM node:18 AS frontend-builder
 WORKDIR /app
 COPY frontend/package.json frontend/yarn.lock ./
-RUN yarn install
+# Create static directory structure for postinstall script
+RUN mkdir -p ../static/public/static
 COPY frontend/ ./
+RUN yarn install
 COPY --from=email-builder /app/email-builder/dist ./public/static/email-builder
 RUN yarn build
 
